@@ -103,18 +103,29 @@ body.hide-words .face { font-size: calc(var(--die) * .52); }
 .flip-front .gram-text { font-size: 18px; }
 .flip-front .gram-ex { font-size: 11px; font-style: italic; color: var(--ink-soft); text-align: center; padding: 0 10px; }
 body.present .flip-front .gram-text { font-size: clamp(20px, 2.6vw, 36px); }
-body.present .flip-front .gram-ex { display: none; }
-.gram-panel {
-  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 14px 18px; margin: 10px 0 4px; box-shadow: var(--shadow);
+body.present:not(.focus-words) .flip-front .gram-ex { display: none; }
+.ctrl-btn {
+  appearance: none; cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 600;
+  color: var(--ink-soft); background: var(--card); border: 1px solid var(--line);
+  border-radius: 999px; padding: 8px 16px; transition: color .15s, border-color .15s, background .15s;
 }
-.gram-panel h3 { font-size: 14px; margin-bottom: 2px; }
-.gram-panel .gp-sub { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 4px; }
+.ctrl-btn:hover { color: var(--ink); border-color: var(--ink); }
+.ctrl-btn[aria-expanded="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.settings-panel {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px 18px; margin: 10px 0 4px; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.settings-panel[hidden] { display: none; }
+.set-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.gram-details summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--ink-soft); }
+.gram-details summary:hover, .gram-details[open] summary { color: var(--ink); }
+.gp-sub { font-size: 12.5px; color: var(--ink-soft); margin: 6px 0 4px; }
 .gram-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 5px 16px; margin-top: 8px; }
 .gram-check { display: flex; gap: 8px; align-items: baseline; font-size: 13.5px; cursor: pointer; }
 .gram-check input { accent-color: var(--accent); flex-shrink: 0; }
 .gram-check small { color: var(--ink-soft); font-style: italic; font-size: 11.5px; }
-body.present .gram-panel { display: none; }
+body.present .settings-panel { display: none; }
 
 .die .cat-tag {
   position: absolute; left: 50%; transform: translateX(-50%); bottom: -38px;
@@ -276,9 +287,14 @@ body.present .stage {
   padding: 40px 4vw 130px; overflow: auto;
 }
 body.present .dice-row { --die: clamp(88px, 15vw, 185px); gap: clamp(26px, 4vw, 64px); }
-body.present .face .word, body.present .cat-tag, body.present .flip-front .word,
-body.present .flip-front .cat { display: none !important; }
-body.present .face { font-size: calc(var(--die) * .56); }
+body.present .cat-tag, body.present .flip-front .cat { display: none !important; }
+body.present:not(.focus-words) .face .word, body.present:not(.focus-words) .flip-front .word { display: none !important; }
+body.present:not(.focus-words) .face { font-size: calc(var(--die) * .56); }
+/* Focus mode: fullscreen with words visible */
+body.present.focus-words .face { font-size: calc(var(--die) * .42); }
+body.present.focus-words .face .word, body.present.focus-words .flip-front .word { display: block !important; }
+body.present.focus-words .face .word { font-size: calc(var(--die) * .09); }
+body.present.focus-words .flip-front .word { font-size: clamp(14px, 1.5vw, 20px); }
 body.present .pcard { width: clamp(130px, 16vw, 210px); height: auto; aspect-ratio: 112 / 152; }
 body.present .flip-front { font-size: clamp(64px, 8.5vw, 116px); }
 body.present .cards-row { gap: clamp(18px, 3vw, 44px); }
@@ -324,34 +340,39 @@ body.present .present-bar {
 <div class="game-wrap">
 
   <div class="game-controls">
-    <span class="ctrl-label">Mode</span>
-    <div class="ctrl-group" id="mode-group" role="group" aria-label="Game mode">
-      <button data-mode="dice" aria-pressed="true">🎲 Dice</button>
-      <button data-mode="cards" aria-pressed="false">🃏 Cards</button>
-    </div>
-    <span class="ctrl-label">How many</span>
-    <div class="ctrl-group" id="count-group" role="group" aria-label="Number of dice">
-      <button data-count="3" aria-pressed="false">3 · easy</button>
-      <button data-count="5" aria-pressed="true">5</button>
-      <button data-count="7" aria-pressed="false">7 · hard</button>
-      <button data-count="9" aria-pressed="false">9 · expert</button>
-    </div>
-    <div class="ctrl-group" role="group" aria-label="Word labels">
-      <button id="words-toggle" aria-pressed="true">Aa English words</button>
-    </div>
-    <div class="ctrl-group" role="group" aria-label="Grammar die">
-      <button id="grammar-toggle" aria-pressed="true" title="Add one die that tells you which grammar to use">✏️ Grammar die</button>
-      <button id="grammar-settings" aria-expanded="false" title="Choose which grammar options can appear">⚙</button>
-    </div>
-    <div class="ctrl-group" role="group" aria-label="Present mode">
-      <button id="present-btn" title="Fullscreen view with images only — great for screen sharing">⛶ Present</button>
-    </div>
+    <button class="ctrl-btn" id="settings-btn" aria-expanded="false">⚙ Settings</button>
+    <button class="ctrl-btn" id="focus-btn" title="Fullscreen: pictures and words, nothing else">🎯 Focus</button>
+    <button class="ctrl-btn" id="present-btn" title="Fullscreen: pictures only — great for screen sharing">⛶ Present</button>
   </div>
 
-  <div class="gram-panel" id="gram-panel" hidden>
-    <h3>Grammar options</h3>
-    <p class="gp-sub">The grammar die only shows the options you tick. Your choice is saved in this browser.</p>
-    <div class="gram-grid" id="gram-grid"></div>
+  <div class="settings-panel" id="settings-panel" hidden>
+    <div class="set-row">
+      <span class="ctrl-label">Mode</span>
+      <div class="ctrl-group" id="mode-group" role="group" aria-label="Game mode">
+        <button data-mode="dice" aria-pressed="true">🎲 Dice</button>
+        <button data-mode="cards" aria-pressed="false">🃏 Cards</button>
+      </div>
+      <span class="ctrl-label">How many</span>
+      <div class="ctrl-group" id="count-group" role="group" aria-label="Number of dice">
+        <button data-count="3" aria-pressed="false">3 · easy</button>
+        <button data-count="5" aria-pressed="true">5</button>
+        <button data-count="7" aria-pressed="false">7 · hard</button>
+        <button data-count="9" aria-pressed="false">9 · expert</button>
+      </div>
+    </div>
+    <div class="set-row">
+      <div class="ctrl-group" role="group" aria-label="Word labels">
+        <button id="words-toggle" aria-pressed="true">Aa English words</button>
+      </div>
+      <div class="ctrl-group" role="group" aria-label="Grammar die">
+        <button id="grammar-toggle" aria-pressed="true" title="Add one die that tells you which grammar to use">✏️ Grammar die</button>
+      </div>
+    </div>
+    <details class="gram-details">
+      <summary>✏️ Grammar die options</summary>
+      <p class="gp-sub">The grammar die only shows the options you tick. Your choice is saved in this browser.</p>
+      <div class="gram-grid" id="gram-grid"></div>
+    </details>
   </div>
 
   <div class="stage" id="stage" aria-live="polite">
@@ -382,6 +403,7 @@ body.present .present-bar {
     <button class="t-chip" data-sec="60">1 min</button>
     <button class="t-chip" data-sec="120">2 min</button>
     <button class="t-chip" data-sec="180">3 min</button>
+    <button class="t-chip" id="t-pause" hidden>⏸ Pause</button>
     <div class="t-display" id="t-display">–:––</div>
     <div class="t-bar"><div id="t-bar-fill"></div></div>
   </div>
@@ -393,10 +415,10 @@ body.present .present-bar {
         <li><b>Roll the dice</b> (or flip the cards).</li>
         <li>Read the <b>story starter</b> out loud.</li>
         <li>Tell a story that uses <b>every picture</b>. Speak for one minute, or write 5–8 sentences.</li>
-        <li>The gold <b>✏️ grammar die</b> tells you which grammar to use in your story. Press <b>⚙</b> to choose which grammar options can appear.</li>
+        <li>The gold <b>✏️ grammar die</b> tells you which grammar to use in your story. Open <b>⚙ Settings</b> to choose which grammar options can appear.</li>
         <li>Playing with a partner? Take turns: each person adds <b>one sentence</b> using the next picture.</li>
         <li>Too easy? Use <b>7 or 9 dice</b>, hide the English words, and add a past tense to every sentence.</li>
-        <li>Teaching a class? Press <b>⛶ Present</b> for a fullscreen view with images only — everyone interprets the pictures their own way.</li>
+        <li>Want a clean screen? <b>🎯 Focus</b> shows just the dice with words. Teaching a class? <b>⛶ Present</b> shows images only — everyone interprets the pictures their own way.</li>
       </ol>
     </div>
     <div class="panel">
@@ -664,23 +686,23 @@ wordsToggle.addEventListener('click', () => {
 });
 rollBtn.addEventListener('click', roll);
 
-/* ================= Grammar die controls ================= */
-const grammarToggle = document.getElementById('grammar-toggle');
-const gramPanel = document.getElementById('gram-panel');
-const gramSettingsBtn = document.getElementById('grammar-settings');
-grammarToggle.setAttribute('aria-pressed', grammarOn);
+/* ================= Settings panel & grammar controls ================= */
+const settingsBtn = document.getElementById('settings-btn');
+const settingsPanel = document.getElementById('settings-panel');
+settingsBtn.addEventListener('click', () => {
+  const open = settingsPanel.hidden;
+  settingsPanel.hidden = !open;
+  settingsBtn.setAttribute('aria-expanded', open);
+});
 
+const grammarToggle = document.getElementById('grammar-toggle');
+grammarToggle.setAttribute('aria-pressed', grammarOn);
 grammarToggle.addEventListener('click', () => {
   if (rolling) return;
   grammarOn = !grammarOn;
   grammarToggle.setAttribute('aria-pressed', grammarOn);
   saveGram();
   roll();
-});
-gramSettingsBtn.addEventListener('click', () => {
-  const open = gramPanel.hidden;
-  gramPanel.hidden = !open;
-  gramSettingsBtn.setAttribute('aria-expanded', open);
 });
 
 function renderGramGrid() {
@@ -700,22 +722,24 @@ document.getElementById('gram-grid').addEventListener('change', e => {
 });
 renderGramGrid();
 
-/* ================= Present mode ================= */
-function enterPresent() {
+/* ================= Present & Focus modes ================= */
+function enterView(withWords) {
   document.body.classList.add('present');
+  document.body.classList.toggle('focus-words', withWords);
   if (document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen().catch(() => {});
   }
 }
 function exitPresent() {
-  document.body.classList.remove('present');
+  document.body.classList.remove('present', 'focus-words');
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 }
-document.getElementById('present-btn').addEventListener('click', enterPresent);
+document.getElementById('present-btn').addEventListener('click', () => enterView(false));
+document.getElementById('focus-btn').addEventListener('click', () => enterView(true));
 document.getElementById('present-exit').addEventListener('click', exitPresent);
 document.getElementById('present-roll').addEventListener('click', e => { e.stopPropagation(); roll(); });
 document.addEventListener('fullscreenchange', () => {
-  if (!document.fullscreenElement) document.body.classList.remove('present');
+  if (!document.fullscreenElement) document.body.classList.remove('present', 'focus-words');
 });
 stage.addEventListener('click', () => {
   if (document.body.classList.contains('present')) roll();
@@ -737,16 +761,29 @@ document.getElementById('starter-shuffle').addEventListener('click', newStarter)
 newStarter();
 
 /* ================= Timer ================= */
-let timerId = null, timeLeft = 0, timeTotal = 0;
+let timerId = null, timeLeft = 0, timeTotal = 0, timerPaused = false;
 const tDisplay = document.getElementById('t-display');
 const tBar = document.getElementById('t-bar-fill');
+const tPause = document.getElementById('t-pause');
 const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 
 function stopTimer(clear) {
-  clearInterval(timerId); timerId = null;
+  clearInterval(timerId); timerId = null; timerPaused = false;
+  tPause.hidden = true; tPause.textContent = '⏸ Pause';
   document.querySelectorAll('.t-chip').forEach(c => c.classList.remove('on'));
   if (clear) { tDisplay.textContent = '–:––'; tDisplay.classList.remove('low'); tBar.style.width = '0%'; }
 }
+tPause.addEventListener('click', () => {
+  if (timerPaused) {
+    timerId = setInterval(tick, 1000);
+    timerPaused = false;
+    tPause.textContent = '⏸ Pause';
+  } else if (timerId) {
+    clearInterval(timerId); timerId = null;
+    timerPaused = true;
+    tPause.textContent = '▶ Resume';
+  }
+});
 function tick() {
   timeLeft--;
   tDisplay.textContent = fmt(Math.max(0, timeLeft));
@@ -759,6 +796,7 @@ function tick() {
   }
 }
 document.querySelectorAll('.t-chip').forEach(chip => {
+  if (chip.id === 't-pause') return;
   chip.addEventListener('click', () => {
     if (chip.classList.contains('on')) { stopTimer(true); return; }
     stopTimer(true);
@@ -767,6 +805,7 @@ document.querySelectorAll('.t-chip').forEach(chip => {
     tDisplay.textContent = fmt(timeLeft);
     tBar.style.width = '0%';
     timerId = setInterval(tick, 1000);
+    tPause.hidden = false;
   });
 });
 

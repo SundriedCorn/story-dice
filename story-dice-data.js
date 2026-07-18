@@ -47,7 +47,7 @@ const CATEGORIES = [
     ['⛽','petrol station'],['🛣️','highway'],['🌉','bridge at night'],['🌁','foggy city'],['🏙️','big city'],
     ['🌆','city at sunset'],['🌃','city at night'],['🛖','little hut'],['⛺','tent'],['🛤️','railway tracks'],
     ['⚓','harbor'],['🌌','outer space'],['🪐','another planet'],['🌑','the Moon'],['🎭','theater'],
-    ['🎬','film studio'],['🍽️','restaurant'],['🗺️? playground','playground'],['🎠','carousel'],['🚧','roadworks'],
+    ['🎬','film studio'],['🍽️','restaurant'],['🛝','playground'],['🎠','carousel'],['🚧','roadworks'],
     ['🌾','farm field'],['🌍','the whole world'],['🧊','iceberg'],['🌴','tropical island'],
   ]},
   { key: 'object', label: 'Object', bg: '#e6efe9', items: [

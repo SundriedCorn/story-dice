@@ -90,6 +90,32 @@ body.hide-words .face { font-size: calc(var(--die) * .52); }
 .face.f-top    { transform: rotateX(90deg) translateZ(calc(var(--die) / 2)); }
 .face.f-bottom { transform: rotateX(-90deg) translateZ(calc(var(--die) / 2)); }
 
+/* Grammar die & settings */
+.face.gram { gap: 6px; padding: 6px; }
+.gram-tag {
+  font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: #8a6018; background: rgba(255,255,255,.65); padding: 2px 7px; border-radius: 999px;
+}
+.gram-text {
+  font-family: 'Fraunces', Georgia, serif; font-size: calc(var(--die) * .15);
+  font-weight: 700; color: #5b3d0c; text-align: center; line-height: 1.2; padding: 0 4px;
+}
+.flip-front .gram-text { font-size: 18px; }
+.flip-front .gram-ex { font-size: 11px; font-style: italic; color: var(--ink-soft); text-align: center; padding: 0 10px; }
+body.present .flip-front .gram-text { font-size: clamp(20px, 2.6vw, 36px); }
+body.present .flip-front .gram-ex { display: none; }
+.gram-panel {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px 18px; margin: 10px 0 4px; box-shadow: var(--shadow);
+}
+.gram-panel h3 { font-size: 14px; margin-bottom: 2px; }
+.gram-panel .gp-sub { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 4px; }
+.gram-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 5px 16px; margin-top: 8px; }
+.gram-check { display: flex; gap: 8px; align-items: baseline; font-size: 13.5px; cursor: pointer; }
+.gram-check input { accent-color: var(--accent); flex-shrink: 0; }
+.gram-check small { color: var(--ink-soft); font-style: italic; font-size: 11.5px; }
+body.present .gram-panel { display: none; }
+
 .die .cat-tag {
   position: absolute; left: 50%; transform: translateX(-50%); bottom: -38px;
   font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
@@ -313,9 +339,19 @@ body.present .present-bar {
     <div class="ctrl-group" role="group" aria-label="Word labels">
       <button id="words-toggle" aria-pressed="true">Aa English words</button>
     </div>
+    <div class="ctrl-group" role="group" aria-label="Grammar die">
+      <button id="grammar-toggle" aria-pressed="true" title="Add one die that tells you which grammar to use">✏️ Grammar die</button>
+      <button id="grammar-settings" aria-expanded="false" title="Choose which grammar options can appear">⚙</button>
+    </div>
     <div class="ctrl-group" role="group" aria-label="Present mode">
       <button id="present-btn" title="Fullscreen view with images only — great for screen sharing">⛶ Present</button>
     </div>
+  </div>
+
+  <div class="gram-panel" id="gram-panel" hidden>
+    <h3>Grammar options</h3>
+    <p class="gp-sub">The grammar die only shows the options you tick. Your choice is saved in this browser.</p>
+    <div class="gram-grid" id="gram-grid"></div>
   </div>
 
   <div class="stage" id="stage" aria-live="polite">
@@ -357,6 +393,7 @@ body.present .present-bar {
         <li><b>Roll the dice</b> (or flip the cards).</li>
         <li>Read the <b>story starter</b> out loud.</li>
         <li>Tell a story that uses <b>every picture</b>. Speak for one minute, or write 5–8 sentences.</li>
+        <li>The gold <b>✏️ grammar die</b> tells you which grammar to use in your story. Press <b>⚙</b> to choose which grammar options can appear.</li>
         <li>Playing with a partner? Take turns: each person adds <b>one sentence</b> using the next picture.</li>
         <li>Too easy? Use <b>7 or 9 dice</b>, hide the English words, and add a past tense to every sentence.</li>
         <li>Teaching a class? Press <b>⛶ Present</b> for a fullscreen view with images only — everyone interprets the pictures their own way.</li>
@@ -406,6 +443,23 @@ const ingredients = document.getElementById('ingredients');
 
 const rand = a => a[Math.floor(Math.random() * a.length)];
 
+/* Grammar die state (persisted) */
+const GKEY = 'storyDiceGrammar';
+let grammarOn = true;
+let gramSel = new Set(GRAMMAR.map(g => g[0]));
+try {
+  const saved = JSON.parse(localStorage.getItem(GKEY) || 'null');
+  if (saved) {
+    if (Array.isArray(saved.sel)) {
+      const valid = saved.sel.filter(l => GRAMMAR.some(g => g[0] === l));
+      if (valid.length) gramSel = new Set(valid);
+    }
+    grammarOn = saved.on !== false;
+  }
+} catch {}
+function saveGram() { localStorage.setItem(GKEY, JSON.stringify({ on: grammarOn, sel: [...gramSel] })); }
+const gramPool = () => GRAMMAR.filter(g => gramSel.has(g[0]));
+
 function shuffle(a) {
   const s = [...a];
   for (let i = s.length - 1; i > 0; i--) {
@@ -416,7 +470,7 @@ function shuffle(a) {
 }
 
 function pickRoll() {
-  return shuffle(COUNT_SETS[diceCount]).map((key, i) => {
+  const roll = shuffle(COUNT_SETS[diceCount]).map((key, i) => {
     const cat = catByKey[key];
     let item = rand(cat.items);
     const prev = currentRoll[i];
@@ -425,11 +479,22 @@ function pickRoll() {
     }
     return { cat: key, emoji: item[0], word: item[1] };
   });
+  const pool = gramPool();
+  if (grammarOn && pool.length) {
+    let g = rand(pool);
+    const prev = currentRoll.find(x => x.cat === 'grammar');
+    while (prev && pool.length > 1 && g[0] === prev.label) g = rand(pool);
+    roll.push({ cat: 'grammar', label: g[0], example: g[1] });
+  }
+  return roll;
 }
 
 /* ================= Dice mode ================= */
 function faceHTML(cls, emoji, word) {
   return `<div class="face ${cls}"><span class="e">${emoji}</span><span class="word">${word}</span></div>`;
+}
+function gramFaceHTML(cls, label) {
+  return `<div class="face gram ${cls}"><span class="gram-tag">grammar</span><span class="gram-text">${label}</span></div>`;
 }
 
 function buildDice(roll) {
@@ -437,21 +502,26 @@ function buildDice(roll) {
   row.className = 'dice-row';
   row.id = 'dice-row';
   roll.forEach((r, i) => {
-    const cat = catByKey[r.cat];
+    const isGram = r.cat === 'grammar';
+    const cat = isGram ? null : catByKey[r.cat];
     const die = document.createElement('div');
     die.className = 'die';
-    die.style.setProperty('--face-bg', cat.bg);
+    die.style.setProperty('--face-bg', isGram ? '#fbf3df' : cat.bg);
     const sides = ['f-front','f-back','f-right','f-left','f-top','f-bottom'];
     const cube = document.createElement('div');
     cube.className = 'cube';
     cube.innerHTML = sides.map(s => {
+      if (isGram) {
+        const label = s === 'f-front' ? r.label : rand(gramPool())[0];
+        return gramFaceHTML(s, label);
+      }
       const item = s === 'f-front' ? [r.emoji, r.word] : rand(cat.items);
       return faceHTML(s, item[0], item[1]);
     }).join('');
     die.appendChild(cube);
     const tag = document.createElement('div');
     tag.className = 'cat-tag';
-    tag.textContent = cat.label;
+    tag.textContent = isGram ? 'Grammar' : cat.label;
     die.appendChild(tag);
     row.appendChild(die);
   });
@@ -483,18 +553,22 @@ function buildCards(roll) {
   const row = document.createElement('div');
   row.className = 'cards-row';
   roll.forEach((r, i) => {
-    const cat = catByKey[r.cat];
+    const isGram = r.cat === 'grammar';
+    const cat = isGram ? null : catByKey[r.cat];
     const card = document.createElement('div');
     card.className = 'pcard';
     card.style.setProperty('--deal', (i * 0.1) + 's');
+    const front = isGram
+      ? `<span class="cat">Grammar</span>
+         <span class="gram-text">${r.label}</span>
+         <span class="gram-ex">${r.example}</span>`
+      : `<span class="cat">${cat.label}</span>
+         <span class="e">${r.emoji}</span>
+         <span class="word">${r.word}</span>`;
     card.innerHTML = `
-      <div class="pcard-inner" style="--face-bg:${cat.bg}">
+      <div class="pcard-inner" style="--face-bg:${isGram ? '#fbf3df' : cat.bg}">
         <div class="flip-face flip-back">${CARD_BACK_SVG}</div>
-        <div class="flip-face flip-front">
-          <span class="cat">${cat.label}</span>
-          <span class="e">${r.emoji}</span>
-          <span class="word">${r.word}</span>
-        </div>
+        <div class="flip-face flip-front">${front}</div>
       </div>`;
     row.appendChild(card);
   });
@@ -533,9 +607,12 @@ async function roll() {
 }
 
 function showIngredients(roll) {
-  ingredients.innerHTML = roll.map((r, i) =>
-    `<span class="ing-chip" style="--d:${i * 0.07}s"><span class="e">${r.emoji}</span> ${r.word} <span class="c">· ${catByKey[r.cat].label}</span></span>`
-  ).join('');
+  ingredients.innerHTML = roll.map((r, i) => {
+    if (r.cat === 'grammar') {
+      return `<span class="ing-chip" style="--d:${i * 0.07}s"><span class="e">✏️</span> ${r.label} <small style="font-style:italic;color:var(--ink-soft)">(${r.example})</small> <span class="c">· Grammar</span></span>`;
+    }
+    return `<span class="ing-chip" style="--d:${i * 0.07}s"><span class="e">${r.emoji}</span> ${r.word} <span class="c">· ${catByKey[r.cat].label}</span></span>`;
+  }).join('');
 }
 
 /* ================= History ================= */
@@ -543,7 +620,7 @@ const HKEY = 'storyDiceHistory';
 function loadHistory() { try { return JSON.parse(localStorage.getItem(HKEY) || '[]'); } catch { return []; } }
 function saveHistory(roll) {
   const h = loadHistory();
-  h.unshift({ t: Date.now(), r: roll.map(x => x.emoji) });
+  h.unshift({ t: Date.now(), r: roll.map(x => x.cat === 'grammar' ? '✏️' : x.emoji) });
   localStorage.setItem(HKEY, JSON.stringify(h.slice(0, 6)));
   renderHistory();
 }
@@ -586,6 +663,42 @@ wordsToggle.addEventListener('click', () => {
   document.body.classList.toggle('hide-words', !on);
 });
 rollBtn.addEventListener('click', roll);
+
+/* ================= Grammar die controls ================= */
+const grammarToggle = document.getElementById('grammar-toggle');
+const gramPanel = document.getElementById('gram-panel');
+const gramSettingsBtn = document.getElementById('grammar-settings');
+grammarToggle.setAttribute('aria-pressed', grammarOn);
+
+grammarToggle.addEventListener('click', () => {
+  if (rolling) return;
+  grammarOn = !grammarOn;
+  grammarToggle.setAttribute('aria-pressed', grammarOn);
+  saveGram();
+  roll();
+});
+gramSettingsBtn.addEventListener('click', () => {
+  const open = gramPanel.hidden;
+  gramPanel.hidden = !open;
+  gramSettingsBtn.setAttribute('aria-expanded', open);
+});
+
+function renderGramGrid() {
+  document.getElementById('gram-grid').innerHTML = GRAMMAR.map(([label, ex]) =>
+    `<label class="gram-check"><input type="checkbox" data-g="${label}" ${gramSel.has(label) ? 'checked' : ''}> <span>${label} <small>${ex}</small></span></label>`
+  ).join('');
+}
+document.getElementById('gram-grid').addEventListener('change', e => {
+  const cb = e.target; if (!cb.dataset.g) return;
+  if (cb.checked) {
+    gramSel.add(cb.dataset.g);
+  } else {
+    if (gramSel.size === 1) { cb.checked = true; return; } // keep at least one option
+    gramSel.delete(cb.dataset.g);
+  }
+  saveGram();
+});
+renderGramGrid();
 
 /* ================= Present mode ================= */
 function enterPresent() {

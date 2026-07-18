@@ -1,0 +1,57 @@
+:root {
+  --bg: #faf7f2;
+  --ink: #1b1a17;
+  --ink-soft: #5b5750;
+  --line: #e7e1d6;
+  --card: #ffffff;
+  --accent: #2b5f4a;
+  --accent-soft: #e6efe9;
+  --accent-ink: #163c2e;
+  --warn: #b04a2a;
+  --warn-soft: #fbe9e2;
+  --gold: #c08a2a;
+  --shadow: 0 1px 2px rgba(20,20,20,.04), 0 8px 24px -12px rgba(20,20,20,.12);
+  --radius: 14px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.6 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); }
+h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; letter-spacing: -.01em; color: var(--ink); margin: 0; }
+h1 { font-size: clamp(28px, 4.2vw, 44px); line-height: 1.1; }
+h2 { font-size: 22px; margin-bottom: 6px; }
+p { margin: .35em 0 .75em; }
+
+/* Header */
+.topbar {
+  border-bottom: 1px solid var(--line);
+  background: rgba(250,247,242,.85);
+  backdrop-filter: saturate(140%) blur(8px);
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: 14px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; color: var(--ink); }
+.brand-dot { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; color: #fff; font-family: 'Fraunces', serif; font-size: 17px; }
+
+/* Hero */
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-ink);
+  font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+}
+.hub-hero {
+  max-width: 960px; margin: 0 auto; padding: 60px 24px 40px;
+}
+.hub-hero h1 { font-size: clamp(36px, 5vw, 56px); max-width: 18ch; margin: 14px 0 10px; }
+.hub-hero p.sub { font-size: 18px; color: var(--ink-soft); max-width: 56ch; margin-top: 14px; }
+
+footer.foot { max-width: 960px; margin: 40px auto; padding: 32px 24px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 14px; display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
